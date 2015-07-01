@@ -239,6 +239,16 @@ public abstract class HobbitOpsImpl {
     }
 
     /**
+     * Delete the @a selection and @a selectionArgs from the
+     * HobbitContentProvider at the @a uri.  Plays the role of an
+     * "abstract hook method" in the Template Method pattern.
+     */
+    protected abstract int delete(Uri uri,
+                                  String selection,
+                                  String[] selectionArgs)
+        throws RemoteException;
+
+    /**
      * Delete all characters from the HobbitContentProvider.  Plays
      * the role of a "template method" in the Template Method pattern.
      */
@@ -250,25 +260,13 @@ public abstract class HobbitOpsImpl {
     }
 
     /**
-     * Delete the @a selection and @a selectionArgs from the
-     * HobbitContentProvider at the @a uri.  Plays the role of an
-     * "abstract hook method" in the Template Method pattern.
-     */
-    protected abstract int delete(Uri uri,
-                                  String selection,
-                                  String[] selectionArgs)
-        throws RemoteException;
-
-    /**
      * Display the current contents of the HobbitContentProvider.
      */
     public void displayAll()
         throws RemoteException {
         // Query for all the characters in the HobbitContentProvider.
         mCursor = query(CharacterContract.CharacterEntry.CONTENT_URI,
-                        null,
-                        null,
-                        /* Could also do this:
+                        CharacterContract.CharacterEntry.sColumnsToDisplay,
                         CharacterContract.CharacterEntry.COLUMN_RACE,
                         new String[] { 
                                  "Dwarf",
@@ -277,9 +275,14 @@ public abstract class HobbitOpsImpl {
                                  "Dragon",
                                  "Man",
                                  "Bear"
-                             }
-                        */
+                             },
+                       /* The following three null parameters could
+                          also be this:
+
                         null,
+                        null,
+                        null,
+                        */
                         null);
         if (mCursor.getCount() == 0) {
             Toast.makeText(mActivity.get(), 

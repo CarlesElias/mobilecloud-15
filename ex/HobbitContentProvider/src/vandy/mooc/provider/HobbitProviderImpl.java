@@ -2,12 +2,13 @@ package vandy.mooc.provider;
 
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.UriMatcher;
 import android.database.Cursor;
 import android.net.Uri;
 
 /**
- * Content Provider used to store information about Hobbit characters.
+ * Content Provider implementation used to manage Hobbit characters.
+ * This class plays the role of the "Implementor" in the Bridge
+ * pattern and the "Abstract Class" in the Template Method pattern.
  */
 public abstract class HobbitProviderImpl {
     /**
@@ -16,69 +17,29 @@ public abstract class HobbitProviderImpl {
     protected final static String TAG =
         HobbitProvider.class.getSimpleName();
 
+    /**
+     * Context used for various ContentResolver activities.
+     */
     protected Context mContext;
 
     /**
-     * The code that is returned when a URI for more than 1 items is
-     * matched against the given components.  Must be positive.
+     * Constructor initializes the Context field.
      */
-    protected static final int CHARACTERS = 100;
-
-    /**
-     * The code that is returned when a URI for exactly 1 item is
-     * matched against the given components.  Must be positive.
-     */
-    protected static final int CHARACTER = 101;
-
-    /**
-     * The URI Matcher used by this content provider.
-     */
-    protected static final UriMatcher sUriMatcher =
-        buildUriMatcher();
-
     public HobbitProviderImpl(Context context) {
         mContext = context;
-    }
-
-    /**
-     * Helper method to match each URI to the ACRONYM integers
-     * constant defined above.
-     * 
-     * @return UriMatcher
-     */
-    protected static UriMatcher buildUriMatcher() {
-        // All paths added to the UriMatcher have a corresponding code
-        // to return when a match is found.  The code passed into the
-        // constructor represents the code to return for the rootURI.
-        // It's common to use NO_MATCH as the code for this case.
-        final UriMatcher matcher = 
-            new UriMatcher(UriMatcher.NO_MATCH);
-
-        // For each type of URI that is added, a corresponding code is
-        // created.
-        matcher.addURI(CharacterContract.CONTENT_AUTHORITY,
-                       CharacterContract.PATH_CHARACTER,
-                       CHARACTERS);
-        matcher.addURI(CharacterContract.CONTENT_AUTHORITY,
-                       CharacterContract.PATH_CHARACTER
-                       + "/#",
-                       CHARACTER);
-        return matcher;
     }
 
     /**
      * Method called to handle type requests from client applications.
      * It returns the MIME type of the data associated with each URI.
      */
-    public synchronized String getType(Uri uri) {
-        // Use Uri Matcher to determine what kind of URI this is.
-        final int match = sUriMatcher.match(uri);
+    public String getType(Uri uri) {
         // Match the id returned by UriMatcher to return appropriate
         // MIME_TYPE.
-        switch (match) {
-        case CHARACTERS:
+        switch (CharacterContract.sUriMatcher.match(uri)) {
+        case CharacterContract.CHARACTERS:
             return CharacterContract.CharacterEntry.CONTENT_ITEMS_TYPE;
-        case CHARACTER:
+        case CharacterContract.CHARACTER:
             return CharacterContract.CharacterEntry.CONTENT_ITEM_TYPE;
         default:
             throw new UnsupportedOperationException("Unknown uri: " 
@@ -99,8 +60,8 @@ public abstract class HobbitProviderImpl {
         // code for the matched node (added using addURI), or -1 if
         // there is no matched node.  If there's a match insert a new
         // row.
-        switch (sUriMatcher.match(uri)) {
-        case CHARACTERS:
+        switch (CharacterContract.sUriMatcher.match(uri)) {
+        case CharacterContract.CHARACTERS:
             returnUri = insertCharacters(uri,
                                          cvs);
             break;
@@ -133,13 +94,16 @@ public abstract class HobbitProviderImpl {
         // code for the matched node (added using addURI), or -1 if
         // there is no matched node.  If there's a match insert new
         // rows.
-        switch (sUriMatcher.match(uri)) {
-        case CHARACTERS:
-            int returnCount = bulkInsertCharacters(uri, cvsArray);
+        switch (CharacterContract.sUriMatcher.match(uri)) {
+        case CharacterContract.CHARACTERS:
+            int returnCount = bulkInsertCharacters(uri,
+                                                   cvsArray);
 
-            // Notifies registered observers that rows were inserted.
-            mContext.getContentResolver().notifyChange(uri, 
-                                                       null);
+            if (returnCount > 0)
+                // Notifies registered observers that row(s) were
+                // inserted.
+                mContext.getContentResolver().notifyChange(uri, 
+                                                           null);
             return returnCount;
         default:
             throw new UnsupportedOperationException();
@@ -148,8 +112,8 @@ public abstract class HobbitProviderImpl {
 
     /** 
      * Inserts an array of @a ContentValues into the table.  This
-     * method plays the role of the "abstract hook method" in the Template
-     * Method pattern.
+     * method plays the role of the "abstract hook method" in the
+     * Template Method pattern.
      */   
     public abstract int bulkInsertCharacters(Uri uri,
                                              ContentValues[] cvsArray);
@@ -168,15 +132,15 @@ public abstract class HobbitProviderImpl {
 
         // Match the id returned by UriMatcher to query appropriate
         // rows.
-        switch (sUriMatcher.match(uri)) {
-        case CHARACTERS:
+        switch (CharacterContract.sUriMatcher.match(uri)) {
+        case CharacterContract.CHARACTERS:
             cursor = queryCharacters(uri,
                                      projection,
                                      selection,
                                      selectionArgs,
                                      sortOrder);
             break;
-        case CHARACTER:
+        case CharacterContract.CHARACTER:
             cursor = queryCharacter(uri,
                                     projection,
                                     selection,
@@ -196,8 +160,8 @@ public abstract class HobbitProviderImpl {
     
     /** 
      * Queries for a @a selection in the entire table, relative to
-     * the @a selectionArgs.  This method plays the role of the "abstract hook
-     * method" in the Template Method pattern.
+     * the @a selectionArgs.  This method plays the role of the
+     * "abstract hook method" in the Template Method pattern.
      */   
     public abstract Cursor queryCharacters
         (Uri uri,
@@ -231,14 +195,14 @@ public abstract class HobbitProviderImpl {
 
         // Match the id returned by UriMatcher to update appropriate
         // rows.
-        switch (sUriMatcher.match(uri)) {
-        case CHARACTERS:
+        switch (CharacterContract.sUriMatcher.match(uri)) {
+        case CharacterContract.CHARACTERS:
             recsUpdated = updateCharacters(uri,
                                            cvs,
                                            selection,
                                            selectionArgs);
             break;
-        case CHARACTER:
+        case CharacterContract.CHARACTER:
             recsUpdated = updateCharacter(uri,
                                           cvs,
                                           selection,
@@ -249,9 +213,11 @@ public abstract class HobbitProviderImpl {
                                                     + uri);
         }
 
-        // Notifies registered observers that a row was inserted.
-        mContext.getContentResolver().notifyChange(uri, 
-                                                   null);
+        if (recsUpdated > 0)
+            // Notifies registered observers that row(s) were
+            // inserted.
+            mContext.getContentResolver().notifyChange(uri, 
+                                                       null);
         return recsUpdated;
     }
 
@@ -291,13 +257,13 @@ public abstract class HobbitProviderImpl {
         // code for the matched node (added using addURI) or -1 if
         // there is no matched node.  If a match is found delete the
         // appropriate rows.
-        switch (sUriMatcher.match(uri)) {
-        case CHARACTERS:
+        switch (CharacterContract.sUriMatcher.match(uri)) {
+        case CharacterContract.CHARACTERS:
             recsDeleted = deleteCharacters(uri,
                                            selection,
                                            selectionArgs);
             break;
-        case CHARACTER:
+        case CharacterContract.CHARACTER:
             recsDeleted = deleteCharacter(uri,
                                           selection,
                                           selectionArgs);
@@ -307,8 +273,8 @@ public abstract class HobbitProviderImpl {
                                                     + uri);
         }
 
-        // Notifies registered observers that rows were deleted.
-        if (selection == null 
+        // Notifies registered observers that row(s) were deleted.
+        if (selection == null
             || recsDeleted != 0) 
             mContext.getContentResolver().notifyChange(uri,
                                                        null);
@@ -317,8 +283,8 @@ public abstract class HobbitProviderImpl {
     
     /** 
      * Delete a @a selection in the entire table, relative to the @a
-     * selectionArgs.  This method plays the role of the "abstract hook method"
-     * in the Template Method pattern.
+     * selectionArgs.  This method plays the role of the "abstract
+     * hook method" in the Template Method pattern.
      */   
     public abstract int deleteCharacters(Uri uri,
                 String selection,
